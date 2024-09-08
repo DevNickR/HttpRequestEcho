@@ -6,6 +6,7 @@ on:
       - main
       - release/*
       - 'v*'    # Matches release branches like v1, v2, etc.
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
   build:
