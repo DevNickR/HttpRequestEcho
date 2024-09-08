@@ -1,0 +1,46 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - release/*
+      - 'v*'    # Matches release branches like v1, v2, etc.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract branch and commit ID
+        id: vars
+        run: |
+          # Extract branch name and strip 'refs/heads/' prefix
+          BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's|refs/heads/||')
+          # Get the commit ID
+          COMMIT_ID=${{ github.sha }}
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "commit_id=$COMMIT_ID" >> $GITHUB_ENV
+
+      - name: Build the Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/http-echo:${{ env.branch_name }} .
+          docker tag ${{ secrets.DOCKER_USERNAME }}/http-echo:${{ env.branch_name }} ${{ secrets.DOCKER_USERNAME }}/http-echo:${{ env.commit_id }}
+
+      - name: Push the Docker image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/http-echo:${{ env.branch_name }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/http-echo:${{ env.commit_id }}
+
